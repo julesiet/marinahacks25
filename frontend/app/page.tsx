@@ -5,6 +5,7 @@ import LoginButton from "./components/loginbutton";
 import localFont from "next/font/local";
 import { useEffect } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import Vinyl from "./components/vinyl";
 
 const titleFont = localFont({
   src: [{ path: "../fonts/CSBodegaDrawn-Regular_demo-BF68edcdd4e3b5f.otf", weight: "400", style: "normal" }],
@@ -37,8 +38,15 @@ export default function Page() {
       <ClientInit />
       <ScrollHint label="scroll!" />
 
+      <Vinyl
+        src="/jellyvinyl.png"
+        alt=""
+        size={550}
+        speed={6}
+      />
+
       <div className="flex flex-col space-y-5">
-        <h1 className={`text-9xl font-semibold ${titleFont.className}`}>DJ Mega Jellyfish</h1>
+        <h1 className={`text-9xl font-semibold ${titleFont.className}`}>DJ MEGAJELLI</h1>
       </div>
 
       <div className="grid">
