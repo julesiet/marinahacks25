@@ -12,3 +12,5 @@ venv/
 coverage/
 coverage.xml
 htmlcov/
+.env
+.env.bak
