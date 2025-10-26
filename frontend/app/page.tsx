@@ -49,16 +49,19 @@ export default function Page() {
         <h1 className={`text-9xl font-semibold ${titleFont.className}`}>DJ MEGAJELLI</h1>
       </div>
 
-      <div className="grid">
-        <div className="text-2xl">
-           "Waves haven't sounded this good since Moses parted the Red Sea."
-        </div>
-        <div>
-          nah that text above was filler i'm sorry
+      <div className="flex rounded-[25px] py-[35px] px-[90px] bg-[#006B8F]">
+        <div className="grid place-items-center">
+          <div className="text-3xl text-center">
+            "Waves haven't sounded this good since Moses parted the Red Sea."
+          </div>
+          <div className="text-lg text-center pb-[20px] pt-[10px]">
+            DJ MegaJelli is the next best playlist maker! Log in with your Spotify and chat with
+            <br />MegaJelli about your current vibe to get a personalized playlist fit for your liking!
+          </div>
+          <LoginButton className="hover:cursor-pointer "/>
         </div>
       </div>
 
-      <LoginButton className="hover:cursor-pointer"/>
     </div>
   );
 }

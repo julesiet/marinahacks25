@@ -37,10 +37,10 @@ export default function LoginButton({
       aria-label="Log in with Spotify"
       disabled={isLoading}
       className={[
-        "inline-flex items-center gap-2 rounded-full px-5 py-3",
+        "inline-flex items-center gap-2 rounded-full px-8 py-4",
         "font-medium tracking-tight",
-        "bg-emerald-500 text-white hover:bg-emerald-600",
-        "focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400",
+        "bg-[#F9F0F2] text-[#061E23] text-xl hover:bg-blue-100",
+        "focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-200",
         "disabled:opacity-60 disabled:cursor-not-allowed",
         className || "",
       ].join(" ")}

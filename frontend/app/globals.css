@@ -5,6 +5,12 @@
   src: url('../fonts/IstokWeb-Regular.ttf');
 }
 
+@font-face {
+  font-family: "Bodega";
+  font-style: normal;
+  src: url('../fonts/CSBodegaDrawn-Regular_demo-BF68edcdd4e3b5f.otf')
+}
+
 * {
   font-family: "Istok Web Regular";
 }
