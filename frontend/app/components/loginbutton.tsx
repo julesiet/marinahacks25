@@ -18,7 +18,7 @@ export default function LoginButton({
   const API_BASE =
     apiBaseUrl ||
     process.env.NEXT_PUBLIC_API_URL ||
-    "http://localhost:3001";
+    "http://127.0.0.1:3001";
 
   const handleClick = () => {
     try {

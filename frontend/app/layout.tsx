@@ -1,7 +1,9 @@
 import Link from "next/link";
 import Image from "next/image";
 import "./globals.css";
-import bg from "@/public/djmjbackground.jpg";
+import bg from "@/public/djmj.png";
+
+const BUBBLES_URL = "/movebuble.png";
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -16,7 +18,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             sizes="100vw"
             className="object-cover -z-10"
           />
-          <div className="absolute inset-0 -z-10 bg-black/35" />
+          <div className="absolute inset-0 -z-10 bg-black/25" />
+
+          <div
+            className="bubbles-layer bubbles-layer--2 -z-5"
+            style={{ backgroundImage: `url(${BUBBLES_URL})` }}
+            aria-hidden
+          />
 
             <Link href="/profile">
               <svg

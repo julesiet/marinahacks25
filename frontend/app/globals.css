@@ -38,3 +38,31 @@ body {
   50%      { transform: translateY(6px); }
 }
 .animate-bounce-slow { animation: bounce-slow 1.6s infinite; }
+
+@keyframes bubble-drift-1 {
+  0%   { background-position: 0% 0%; }
+  50%  { background-position: 50% 60%; }
+  100% { background-position: 100% 120%; }
+}
+@keyframes bubble-drift-2 {
+  0%   { background-position: 100% 0%; }
+  50%  { background-position: 50% 40%; }
+  100% { background-position: 0% 80%; }
+}
+
+.bubbles-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;           /* don't block clicks */
+  background-repeat: repeat;      /* tile the PNG */
+  background-size: 700px auto;    /* tune tile size */
+  opacity: 0.25;                   /* subtle! */
+  will-change: background-position;
+}
+.bubbles-layer--1 { animation: bubble-drift-1 60s linear infinite; }
+.bubbles-layer--2 { animation: bubble-drift-2 90s linear infinite; opacity: 0.18; background-size: 500px auto; }
+
+@media (prefers-reduced-motion: reduce) {
+  .bubbles-layer--1,
+  .bubbles-layer--2 { animation: none; }
+}
