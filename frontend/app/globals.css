@@ -1,5 +1,14 @@
 @import "tailwindcss";
 
+@font-face {
+  font-family: "Istok Web Regular";
+  src: url('../fonts/IstokWeb-Regular.ttf');
+}
+
+* {
+  font-family: "Istok Web Regular";
+}
+
 :root {
   --background: #ffffff;
   --foreground: #171717;

@@ -1,5 +1,3 @@
-// WHY: Provide a polished, reusable login button that redirects to your FastAPI /auth/login.
-// WHAT: A client-side React/Next component with loading state, accessible labeling, and a tiny inline Spotify icon.
 "use client";
 
 import * as React from "react";

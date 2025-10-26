@@ -1,15 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
-import localFont from "next/font/local";
 import "./globals.css";
 import bg from "@/public/djmjbackground.jpg";
-
-// will use if need a global font
-const titleFont = localFont({
-  src: [{ path: "../fonts/CSBodegaDrawn-Regular_demo-BF68edcdd4e3b5f.otf", weight: "400", style: "normal" }],
-  display: "swap",
-  variable: "--font-title", // gives you a CSS var for Tailwind later
-});
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -43,7 +35,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </div>
 
           <main className="flex-1">{children}</main>
-          <footer className="border-t">...</footer>
         </div>
       </body>
     </html>
