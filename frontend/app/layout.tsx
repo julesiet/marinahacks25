@@ -32,7 +32,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 width="42"
                 height="40"
                 fill="currentColor"
-                className="hover:cursor-pointer absolute right-5 top-5"
+                className="hover:cursor-pointer absolute right-5 top-5 z-10"
                 viewBox="0 0 16 16"
               >
                 <path d="M11 6a3 3 0 1 1-6 0 3 3 0 0 1 6 0" />
