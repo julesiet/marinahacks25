@@ -19,16 +19,12 @@ export default function LoginButton({
     apiBaseUrl ||
     process.env.NEXT_PUBLIC_API_URL ||
     "http://127.0.0.1:3001";
-
-  const handleClick = () => {
-    try {
-      setIsLoading(true);
-      // Redirect the browser to your backend OAuth start
-      window.location.href = `${API_BASE}/auth/login`;
-    } catch {
-      setIsLoading(false);
-    }
-  };
+    
+const handleClick = () => {
+  setIsLoading(true);
+  // add redirect_to so backend knows where to return after Spotify auth
+  window.location.href = `${API_BASE}/auth/login?redirect_to=/builder`;
+};
 
   return (
     <button
