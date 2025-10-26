@@ -10,7 +10,7 @@ import Vinyl from "./components/vinyl";
 const titleFont = localFont({
   src: [{ path: "../fonts/CSBodegaDrawn-Regular_demo-BF68edcdd4e3b5f.otf", weight: "400", style: "normal" }],
   display: "swap",
-  variable: "--font-title", // gives you a CSS var for Tailwind later
+  variable: "--font-title",
 });
 
 const ClientInit = () => {

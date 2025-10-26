@@ -4,15 +4,12 @@ import { useEffect, useRef, useState } from 'react';
 import Link from "next/link";
 import Vinyl from "../components/vinyl";
 
-// Message type representing either a user or assistant chat message.
-// CHANGED: content can now be React nodes (so we can include an iframe)
+// message type for chatbot response
 type Msg = { id: string; role: 'user' | 'assistant'; content: React.ReactNode };
 
-// Base URL for the backend API.  It reads from NEXT_PUBLIC_API_URL at build/runtime,
-// but falls back to the local FastAPI default if not set.
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://127.0.0.1:3001';
 
-// Convert a regular Spotify playlist URL to an embeddable URL.
+// convert a regular spotify URL --> embeddable URL.
 function toSpotifyEmbedSrc(url: string) {
   try {
     const u = new URL(url);
@@ -40,13 +37,12 @@ export default function BuilderPage() {
   const [sending, setSending] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
 
-  // Scroll to the bottom when new messages arrive.
+  // scroll to the bottom when new messages arrive
   useEffect(() => {
     listRef.current?.lastElementChild?.scrollIntoView({ behavior: 'smooth', block: 'end' });
   }, [messages]);
 
-  // Extract the user id from the URL on mount and persist it.  This allows API calls
-  // to include the logged-in Spotify user’s id.
+  // extract the user id from the URL on mount and persist it
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
@@ -65,7 +61,7 @@ export default function BuilderPage() {
     setInput('');
     setSending(true);
 
-    // Retrieve the Spotify user id; show a login prompt if missing.
+    // retrieve the spotify user id, else show a login prompt if missing
     const userId = typeof window !== 'undefined' ? localStorage.getItem('spotify_user_id') : null;
     if (!userId) {
       const botMsg: Msg = {
@@ -79,7 +75,7 @@ export default function BuilderPage() {
     }
 
     try {
-      // 1) Generate track suggestions for the vibe.
+      // generate track suggestions
       const genResp = await fetch(`${API_BASE}/vibe/generate_llm`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -87,10 +83,9 @@ export default function BuilderPage() {
       });
       const genData = await genResp.json();
 
+      // compiling track summary
       let trackSummary = '';
       if (genResp.ok && Array.isArray(genData.tracks) && genData.tracks.length > 0) {
-        // Use the `artist` property returned by the backend; if unavailable, fall back to any
-        // nested artists array or object.  This avoids blank artist fields.
         const lines = genData.tracks.map((t: any, idx: number) => {
           const artists: string =
             t.artist || (Array.isArray(t.artists) ? t.artists.join(', ') : (t.artists?.name ?? ''));
@@ -101,7 +96,7 @@ export default function BuilderPage() {
         trackSummary = 'Sorry, I couldn’t find any tracks for that vibe. Try refining your description.';
       }
 
-      // 2) Create a playlist for the vibe and get the Spotify URL.
+      // spotify embed code
       const playlistResp = await fetch(`${API_BASE}/vibe/one_click_playlist`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -110,7 +105,6 @@ export default function BuilderPage() {
       const plData = await playlistResp.json();
       const playlistUrl: string | undefined = (playlistResp.ok && plData?.url) ? plData.url : undefined;
 
-      // Build one React node that includes the text summary and (optionally) the embedded player.
       const embedSrc = playlistUrl ? toSpotifyEmbedSrc(playlistUrl) : undefined;
       const responseNode = (
         <>

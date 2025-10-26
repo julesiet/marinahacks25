@@ -1,12 +1,10 @@
-// WHY: Render a small, non-intrusive “scroll” arrow that fades out at the bottom.
-// WHAT: Listens to scroll position on the client; toggles opacity based on whether you're near the page bottom.
 "use client";
 
 import * as React from "react";
 
 type Props = {
-  label?: string;          // text under the arrow ("Scroll")
-  bottomOffsetPx?: number; // how close to bottom to consider "at bottom"
+  label?: string;         
+  bottomOffsetPx?: number; 
 };
 
 export default function ScrollHint({ label = "Scroll", bottomOffsetPx = 24 }: Props) {

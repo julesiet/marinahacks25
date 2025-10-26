@@ -1,33 +1,15 @@
-"""
-Interactive CLI for generating Spotify playlists via the backend API.
-
-It prompts you for a vibe description, calls the backend `/vibe/generate_llm`
-endpoint to get tracks for that vibe, creates a playlist via
-`/playlist/create_from_tracks`, and prints the resulting Spotify link.
-Press Ctrl+C to exit the loop.
-
-By default the Spotify user ID (UID) is hard‑coded below.  You can override it
-at runtime by setting the environment variable SPOTIFY_UID before running the script,
-or by importing this module and setting `playlist_chat.UID` from another file.
-"""
-
 import os
 import httpx
 import time
 from typing import List, Dict, Any
+# testing in a vaccum plz ignore
 
-# Base URL of your FastAPI backend
 BASE_URL = "http://127.0.0.1:3001"
 
-# Default Spotify user ID; can be overridden via SPOTIFY_UID env var or by monkey‑patching
 UID = os.environ.get("SPOTIFY_UID", "21e67joy67geof4pyptwrxtmy")
 
 
 def generate_tracks_from_vibe(vibe_text: str, count: int = 20) -> List[Dict[str, Any]]:
-    """
-    Call the /vibe/generate_llm endpoint to get a list of track dicts for the given vibe.
-    Each dict has keys: id, uri, name, artist, image, etc.
-    """
     payload = {"user": UID, "vibeText": vibe_text, "count": count}
     response = httpx.post(f"{BASE_URL}/vibe/generate_llm", json=payload, timeout=30)
     response.raise_for_status()
@@ -36,10 +18,6 @@ def generate_tracks_from_vibe(vibe_text: str, count: int = 20) -> List[Dict[str,
 
 
 def create_playlist_for_tracks(tracks: List[Dict[str, Any]], vibe_text: str) -> str:
-    """
-    Create a new playlist for the given list of track dicts.
-    Returns the Spotify playlist URL.
-    """
     uris = [t["uri"] for t in tracks if "uri" in t]
     if not uris:
         raise RuntimeError("No valid track URIs to add to a playlist.")
@@ -58,13 +36,9 @@ def create_playlist_for_tracks(tracks: List[Dict[str, Any]], vibe_text: str) -> 
 
 
 def interactive_session() -> None:
-    """
-    Run an interactive loop: ask the user for a vibe description, generate tracks,
-    create a playlist, and print the URL. Press Ctrl+C to exit.
-    """
     print("🎶 Playlist Chat CLI")
     print(f"Using Spotify user ID: {UID}")
-    print("Enter a vibe description (e.g. 'night drive back home') and press Enter.")
+    print("Enter a vibe description and press Enter.")
     try:
         while True:
             prompt = input("\nYour vibe: ").strip()
@@ -75,9 +49,9 @@ def interactive_session() -> None:
             tracks = generate_tracks_from_vibe(prompt, count=20)
             print(f"Got {len(tracks)} tracks; creating playlist…")
             url = create_playlist_for_tracks(tracks, prompt)
-            print(f"✅ Playlist created: {url}")
+            print(f"Playlist created: {url}")
     except KeyboardInterrupt:
-        print("\nExiting. Goodbye!")
+        print("\nGoodbye!")
     except httpx.HTTPError as e:
         print(f"HTTP error: {e}")
     except Exception as e:

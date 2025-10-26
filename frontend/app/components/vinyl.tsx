@@ -1,7 +1,5 @@
 import * as React from "react";
 
-// --- Props ------------------------------------------------------------------
-// We omit width/height because this component controls sizing via style.
 export type VinylProps = Omit<React.ImgHTMLAttributes<HTMLImageElement>, "width" | "height"> & {
   /** Required image source */
   src: string;
@@ -29,9 +27,7 @@ const Vinyl: React.FC<VinylProps> = ({
   const dimension = typeof size === "number" ? `${size}px` : size;
 
   const classes = [
-    // core look
     "animate-spin select-none object-cover shadow-lg",
-    // rounding option
     rounded,
     className || "",
   ]

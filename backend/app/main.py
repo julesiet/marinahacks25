@@ -1,4 +1,3 @@
-# backend/app/main.py
 from __future__ import annotations
 
 import os, time, json, secrets
@@ -12,9 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
 
-# -------------------------------------------------------------------
 # Env & constants
-# -------------------------------------------------------------------
 ENV_PATH = Path(__file__).resolve().parents[1] / ".env"
 load_dotenv(dotenv_path=ENV_PATH, override=True)
 
@@ -24,9 +21,8 @@ SPOTIFY_REDIRECT_URI = os.getenv("SPOTIFY_REDIRECT_URI", "http://127.0.0.1:3001/
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 GROQ_MODEL   = os.getenv("GROQ_MODEL", "llama-3.1-8b-instant")
 
-# -------------------------------------------------------------------
-# App & CORS
-# -------------------------------------------------------------------
+
+# App
 app = FastAPI(debug=True)
 app.add_middleware(
     CORSMiddleware,
@@ -36,16 +32,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# -------------------------------------------------------------------
-# In-memory state (hackathon-friendly)
-# -------------------------------------------------------------------
 PKCE_STORE: Dict[str, Dict[str, Any]] = {}     # state -> {verifier, ts}
 TOKEN_STORE: Dict[str, Dict[str, Any]] = {}    # "spotify:{id}" -> tokens + user
 USER_TASTE: Dict[str, Dict[str, set]] = {}     # "spotify:{id}" -> liked artists/genres (sets)
 
-# -------------------------------------------------------------------
-# Health & routes listing
-# -------------------------------------------------------------------
+# just making sure the routes n stuff work (should return ok true!)
 @app.get("/healthz")
 def healthz():
     return {"ok": True}
@@ -54,37 +45,30 @@ def healthz():
 def __routes():
     return [r.path for r in app.router.routes]
 
-# -------------------------------------------------------------------
-# Auth (lazy import helpers to avoid init-order issues)
-# -------------------------------------------------------------------
+# Actually takes you to the login page
 @app.get("/auth/login")
 def auth_login(request: Request):
-    """Start the OAuth login by generating a state + PKCE verifier/challenge.
-    Optionally records a redirect path passed via ?redirect_to=... so that the callback
-    can return the user to a specific route (e.g. /builder) after authentication.
-    """
+
     from app.oauth_login import gen_code_verifier, code_challenge, build_auth_url
     state = secrets.token_urlsafe(16)
     verifier = gen_code_verifier()
     challenge = code_challenge(verifier)
-    # Determine where to redirect after login; default to root if not provided
     redirect_to = request.query_params.get("redirect_to") or "/"
-    # Store the PKCE verifier and the intended redirect path in the PKCE store
     PKCE_STORE[state] = {"verifier": verifier, "ts": time.time(), "redirect_to": redirect_to}
     return RedirectResponse(build_auth_url(state, challenge))
 
+# redirect url
 @app.get("/auth/callback")
 async def auth_callback(code: str | None = None, state: str | None = None):
     if not code or not state or state not in PKCE_STORE:
         raise HTTPException(400, "invalid state or code")
 
     from app.oauth_tokens import exchange_code_for_tokens
-    # Retrieve and remove stored data for this state (verifier + redirect path)
     entry = PKCE_STORE.pop(state)
     verifier = entry["verifier"]
     tokens = await exchange_code_for_tokens(code, verifier)
 
-    # Fetch user
+
     async with httpx.AsyncClient(timeout=10) as client:
         me = await client.get(
             "https://api.spotify.com/v1/me",
@@ -100,13 +84,9 @@ async def auth_callback(code: str | None = None, state: str | None = None):
         "exp_ts": time.time() + tokens.get("expires_in", 3600),
         "user": {"id": user["id"], "display_name": user.get("display_name")},
     }
-    # After successful login, redirect back to the requested path (e.g. /builder)
     redirect_to = entry.get("redirect_to", "/")
     return RedirectResponse(f"{WEB_ORIGIN}{redirect_to}?user={user['id']}")
 
-# -------------------------------------------------------------------
-# Taste memory (optional but useful)
-# -------------------------------------------------------------------
 class TasteIn(BaseModel):
     user: str
     artistNames: List[str] = []
@@ -120,9 +100,7 @@ def taste_accept(body: TasteIn):
     rec["liked_genres"].update(g.lower() for g in body.genres)
     return {"ok": True, "counts": {"liked_artists": len(rec["liked_artists"]), "liked_genres": len(rec["liked_genres"])}}
 
-# -------------------------------------------------------------------
-# Vibe parsing (heuristic and optional LLM)
-# -------------------------------------------------------------------
+# Vibe parsing so that groq knows what u put in
 class Era(BaseModel):
     frm: Optional[int] = None
     to: Optional[int] = None
@@ -196,9 +174,7 @@ def vibe_parse_ai(body: VibeParseIn) -> VibeRules:
         explicitAllowed=bool(data.get("explicitAllowed", True)),
     )
 
-# -------------------------------------------------------------------
 # User data helpers
-# -------------------------------------------------------------------
 @app.get("/me/top_artists")
 async def top_artists(user: str, limit: int = 10):
     key = f"spotify:{user}"
@@ -214,11 +190,9 @@ async def top_artists(user: str, limit: int = 10):
         items = r.json().get("items", [])
     return [{"id":a["id"], "name":a["name"], "genres":a.get("genres", []), "popularity":a.get("popularity")} for a in items]
 
-# -------------------------------------------------------------------
 # Re-ranking helpers
-# -------------------------------------------------------------------
 def target_audio_profile(vibe_text: str) -> dict:
-    """Very small heuristic mapping vibe → target audio features."""
+    """Very small heuristic mapping vibe -> target audio features."""
     t = vibe_text.lower()
     prof = {"target_energy": 0.5, "target_valence": 0.5, "target_danceability": 0.5}
     if "night drive" in t or "moody" in t: prof.update(target_energy=0.55, target_valence=0.35, target_danceability=0.6)
@@ -227,6 +201,7 @@ def target_audio_profile(vibe_text: str) -> dict:
     if "happy" in t:                       prof.update(target_valence=0.80)
     return prof
 
+# testing categories n stuff but i cant care less plz work
 def score_track(t: dict, af: dict | None, ctx: dict) -> float:
     """Combine artist overlap + taste memory + audio-feature closeness."""
     s = 0.0
@@ -240,8 +215,6 @@ def score_track(t: dict, af: dict | None, ctx: dict) -> float:
         s += 1.0 - abs((af.get("danceability", 0.5)) - pd)
     return s
 
-# Replace your existing fetch_audio_features with this safer version:
-
 async def fetch_audio_features(token: str, ids: List[str]) -> Dict[str, dict]:
     """
     Batch-fetch audio features for track ids. Robust to Spotify 403/other errors:
@@ -254,7 +227,7 @@ async def fetch_audio_features(token: str, ids: List[str]) -> Dict[str, dict]:
     headers = {"Authorization": f"Bearer {token}"}
 
     async with httpx.AsyncClient(timeout=15) as client:
-        # Spotify allows up to 100 ids per call; chunk defensively
+        # Spotify allows up to 100 ids per call
         for i in range(0, len(ids), 100):
             chunk = ids[i:i+100]
             try:
@@ -263,15 +236,13 @@ async def fetch_audio_features(token: str, ids: List[str]) -> Dict[str, dict]:
                     params={"ids": ",".join(chunk)},
                     headers=headers,
                 )
-                # If token expired -> 401 (we still surface so caller can re-login)
+                # If token expired -> 401
                 if r.status_code == 401:
                     raise HTTPException(401, "token expired; re-login at /auth/login")
 
                 # If Spotify refuses (e.g., dev mode/user policy or odd ids) -> 403
                 if r.status_code == 403:
-                    # Log + degrade gracefully: just skip AF entirely
-                    # (You can print/LOG here if you want visibility.)
-                    return {}  # no AF, so ranking will rely on artist/taste
+                    return {} 
 
                 r.raise_for_status()
                 payload = r.json() or {}
@@ -279,15 +250,12 @@ async def fetch_audio_features(token: str, ids: List[str]) -> Dict[str, dict]:
                     if x and x.get("id"):
                         af_map[x["id"]] = x
             except Exception:
-                # Any network/JSON hiccup -> degrade gracefully
                 return {}
 
     return af_map
 
 
-# -------------------------------------------------------------------
-# LLM-assisted generation: vibe → track candidates (with re-ranking)
-# -------------------------------------------------------------------
+# LLM-assisted generation: vibe to track candidates (with re-ranking)
 class LLMGenIn(BaseModel):
     user: str
     vibeText: str
@@ -301,14 +269,14 @@ async def vibe_generate_llm(body: LLMGenIn):
         raise HTTPException(401, "not logged in; go to /auth/login first")
     headers_sp = {"Authorization": f"Bearer {tokens['access_token']}"}
 
-    # 1) Context: user's top artists (keep small for prompt)
+    # context
     async with httpx.AsyncClient(timeout=15) as client:
         r = await client.get("https://api.spotify.com/v1/me/top/artists", params={"limit": 12}, headers=headers_sp)
         if r.status_code == 401: raise HTTPException(401, "token expired; re-login at /auth/login")
         r.raise_for_status()
         top_artists = [{"id":a["id"], "name":a["name"], "genres":a.get("genres", [])} for a in r.json().get("items", [])]
 
-    # 2) Ask Groq (optional) for search suggestions
+    # groq!
     suggestions: List[dict] = []
     if GROQ_API_KEY:
         system = (
@@ -344,7 +312,7 @@ async def vibe_generate_llm(body: LLMGenIn):
             suggestions.append({"title":"", "artist":a["name"], "query": f'{a["name"]} {body.vibeText} -remix -live'})
     suggestions = suggestions[: max(5, body.count * 2)]
 
-    # 3) Search Spotify, dedupe track ids
+    # Search Spotify
     results: List[dict] = []
     seen: set[str] = set()
     async with httpx.AsyncClient(timeout=15) as client:
@@ -376,7 +344,7 @@ async def vibe_generate_llm(body: LLMGenIn):
                     "image": (t.get("album", {}).get("images", []) or [{}])[0].get("url",""),
                     "preview_url": t.get("preview_url"),
                 })
-                if len(results) >= max(body.count, 20):  # keep some headroom for re-rank cut
+                if len(results) >= max(body.count, 20):  
                     break
             except Exception:
                 continue
@@ -384,7 +352,7 @@ async def vibe_generate_llm(body: LLMGenIn):
     if not results:
         return {"vibe": body.vibeText, "count": 0, "tracks": []}
 
-    # 4) Re-rank using audio-features + taste + top artists
+    # Re-rank using audio-features + taste + top artists
     liked = USER_TASTE.get(key, {"liked_artists": set(), "liked_genres": set()})
     ctx = {
         "liked_artists": liked["liked_artists"],
@@ -397,9 +365,8 @@ async def vibe_generate_llm(body: LLMGenIn):
 
     return {"vibe": body.vibeText, "count": len(ranked), "tracks": ranked}
 
-# -------------------------------------------------------------------
 # Playlist creation + one-click flow
-# -------------------------------------------------------------------
+
 class CreatePlaylistIn(BaseModel):
     user: str
     name: str
@@ -416,7 +383,7 @@ async def create_playlist_from_tracks(body: CreatePlaylistIn):
 
     headers_sp = {"Authorization": f"Bearer {tokens['access_token']}", "Content-Type": "application/json"}
 
-    # 1) Create playlist
+    # Create playlist url omg
     async with httpx.AsyncClient(timeout=15) as client:
         c_resp = await client.post(
             f"https://api.spotify.com/v1/users/{body.user}/playlists",
@@ -429,7 +396,7 @@ async def create_playlist_from_tracks(body: CreatePlaylistIn):
         playlist_id = pl["id"]
         playlist_url = (pl.get("external_urls", {}) or {}).get("spotify", "")
 
-    # 2) Add tracks
+    # adds tracks
     uris = [u for u in body.trackUris if u.startswith("spotify:track:")]
     if uris:
         async with httpx.AsyncClient(timeout=15) as client:
@@ -455,7 +422,7 @@ class OneClickIn(BaseModel):
 
 @app.post("/vibe/one_click_playlist")
 async def one_click_playlist(body: OneClickIn):
-    # Generate tracks
+    # Generate tracks!
     gen = await vibe_generate_llm(LLMGenIn(user=body.user, vibeText=body.vibeText, count=body.count))
     if gen["count"] == 0:
         raise HTTPException(502, "no tracks found for this vibe; try different wording")
@@ -472,3 +439,5 @@ async def one_click_playlist(body: OneClickIn):
         )
     )
     return {"url": created["url"], "count": created["added"], "name": pl_name}
+
+#its over

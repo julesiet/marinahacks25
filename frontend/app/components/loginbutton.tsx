@@ -4,8 +4,8 @@ import * as React from "react";
 
 type LoginButtonProps = {
   className?: string;
-  children?: React.ReactNode; // custom label if you don't want the default text
-  apiBaseUrl?: string;        // override for tests; otherwise uses NEXT_PUBLIC_API_URL or localhost
+  children?: React.ReactNode; 
+  apiBaseUrl?: string;       
 };
 
 export default function LoginButton({
@@ -22,7 +22,7 @@ export default function LoginButton({
     
 const handleClick = () => {
   setIsLoading(true);
-  // add redirect_to so backend knows where to return after Spotify auth
+  // add redirect_to so backend knows where to return after spotify auth ...
   window.location.href = `${API_BASE}/auth/login?redirect_to=/builder`;
 };
 
