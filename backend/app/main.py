@@ -7,7 +7,7 @@ from typing import Optional, List, Dict, Any
 
 import httpx
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
@@ -58,12 +58,19 @@ def __routes():
 # Auth (lazy import helpers to avoid init-order issues)
 # -------------------------------------------------------------------
 @app.get("/auth/login")
-def auth_login():
+def auth_login(request: Request):
+    """Start the OAuth login by generating a state + PKCE verifier/challenge.
+    Optionally records a redirect path passed via ?redirect_to=... so that the callback
+    can return the user to a specific route (e.g. /builder) after authentication.
+    """
     from app.oauth_login import gen_code_verifier, code_challenge, build_auth_url
     state = secrets.token_urlsafe(16)
     verifier = gen_code_verifier()
     challenge = code_challenge(verifier)
-    PKCE_STORE[state] = {"verifier": verifier, "ts": time.time()}
+    # Determine where to redirect after login; default to root if not provided
+    redirect_to = request.query_params.get("redirect_to") or "/"
+    # Store the PKCE verifier and the intended redirect path in the PKCE store
+    PKCE_STORE[state] = {"verifier": verifier, "ts": time.time(), "redirect_to": redirect_to}
     return RedirectResponse(build_auth_url(state, challenge))
 
 @app.get("/auth/callback")
@@ -72,7 +79,9 @@ async def auth_callback(code: str | None = None, state: str | None = None):
         raise HTTPException(400, "invalid state or code")
 
     from app.oauth_tokens import exchange_code_for_tokens
-    verifier = PKCE_STORE.pop(state)["verifier"]
+    # Retrieve and remove stored data for this state (verifier + redirect path)
+    entry = PKCE_STORE.pop(state)
+    verifier = entry["verifier"]
     tokens = await exchange_code_for_tokens(code, verifier)
 
     # Fetch user
@@ -91,7 +100,9 @@ async def auth_callback(code: str | None = None, state: str | None = None):
         "exp_ts": time.time() + tokens.get("expires_in", 3600),
         "user": {"id": user["id"], "display_name": user.get("display_name")},
     }
-    return RedirectResponse(f"{WEB_ORIGIN}?user={user['id']}")
+    # After successful login, redirect back to the requested path (e.g. /builder)
+    redirect_to = entry.get("redirect_to", "/")
+    return RedirectResponse(f"{WEB_ORIGIN}{redirect_to}?user={user['id']}")
 
 # -------------------------------------------------------------------
 # Taste memory (optional but useful)
@@ -450,7 +461,7 @@ async def one_click_playlist(body: OneClickIn):
         raise HTTPException(502, "no tracks found for this vibe; try different wording")
     uris = [t["uri"] for t in gen["tracks"] if t.get("uri", "").startswith("spotify:track:")]
 
-    pl_name = body.name or f"{body.vibeText} – {time.strftime('%Y-%m-%d %H:%M')}"
+    pl_name = body.name or f"{body.vibeText} - {time.strftime('%Y-%m-%d %H:%M')}"
     created = await create_playlist_from_tracks(
         CreatePlaylistIn(
             user=body.user,
